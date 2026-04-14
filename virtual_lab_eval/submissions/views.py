@@ -192,7 +192,6 @@ def download_certificate(request, submission_pk):
 def download_submission_record_pdf(request, submission_pk):
     submission = get_object_or_404(Submission, pk=submission_pk)
     preference = get_system_preference()
-    show_ai_evaluation = preference.show_ai_evaluation_to_students or request.user.is_staff
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = (
@@ -205,20 +204,28 @@ def download_submission_record_pdf(request, submission_pk):
     bottom_margin = 16 * mm
     content_width = width - (2 * margin)
 
-    pdf.setStrokeColor(colors.HexColor("#D8E2DC"))
+    pdf.setStrokeColor(colors.HexColor("#CBD5E1"))
     pdf.setLineWidth(1)
-    pdf.roundRect(margin - 4, bottom_margin - 4, width - (2 * margin) + 8, height - (2 * bottom_margin) + 8, 8, stroke=1, fill=0)
+    pdf.roundRect(
+        margin - 4,
+        bottom_margin - 4,
+        width - (2 * margin) + 8,
+        height - (2 * bottom_margin) + 8,
+        8,
+        stroke=1,
+        fill=0,
+    )
 
     logo_y = height - (35 * mm)
     _draw_image_fit(pdf, preference.left_logo, margin, logo_y, 38 * mm, 20 * mm)
     _draw_image_fit(pdf, preference.right_logo, width - margin - (38 * mm), logo_y, 38 * mm, 20 * mm)
 
     pdf.setFillColor(colors.HexColor("#0B3D5E"))
-    pdf.setFont("Helvetica-Bold", 19)
-    pdf.drawCentredString(width / 2, height - (28 * mm), "Virtual Lab Submission Record")
+    pdf.setFont("Helvetica-Bold", 18)
+    pdf.drawCentredString(width / 2, height - (28 * mm), "Virtual Lab Record")
     pdf.setFont("Helvetica", 10)
     pdf.setFillColor(colors.HexColor("#334155"))
-    pdf.drawCentredString(width / 2, height - (34 * mm), "Auto-generated report")
+    pdf.drawCentredString(width / 2, height - (34 * mm), "Generated after submission")
 
     y = height - (46 * mm)
     pdf.setStrokeColor(colors.HexColor("#E5E7EB"))
@@ -227,7 +234,7 @@ def download_submission_record_pdf(request, submission_pk):
 
     pdf.setFillColor(colors.black)
     pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(margin, y, "Submission Details")
+    pdf.drawString(margin, y, "Record Information")
     y -= 7 * mm
 
     detail_lines = [
@@ -236,8 +243,6 @@ def download_submission_record_pdf(request, submission_pk):
         f"Experiment: {submission.experiment.title}",
         f"Submitted At: {submission.submitted_at.strftime('%d %b %Y, %H:%M')}",
         f"Tinkercad Link: {submission.tinkercad_link}",
-        f"Final Score: {submission.final_score}/100",
-        f"Status: {'Passed' if submission.passed else 'Failed'}",
     ]
 
     for line in detail_lines:
@@ -255,13 +260,13 @@ def download_submission_record_pdf(request, submission_pk):
         )
         y -= 1.5 * mm
 
-    y -= 2 * mm
+    y -= 3 * mm
     pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(margin, y, "Student Explanation")
+    pdf.drawString(margin, y, "Aim")
     y -= 6 * mm
     y = _draw_wrapped_text(
         pdf,
-        submission.explanation or "No explanation submitted.",
+        submission.experiment.aim,
         margin,
         y,
         content_width,
@@ -272,17 +277,37 @@ def download_submission_record_pdf(request, submission_pk):
         leading=12,
     )
 
-    y -= 5 * mm
-    if y < bottom_margin + (65 * mm):
-        pdf.showPage()
-        y = height - (22 * mm)
-
+    y -= 4 * mm
     pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(margin, y, "Screenshot Preview")
+    pdf.drawString(margin, y, "Procedure")
+    y -= 6 * mm
+    y = _draw_wrapped_text(
+        pdf,
+        submission.experiment.procedure,
+        margin,
+        y,
+        content_width,
+        height,
+        bottom_margin,
+        font_name="Helvetica",
+        font_size=10,
+        leading=12,
+    )
+
+    y -= 4 * mm
+    pdf.setFont("Helvetica-Bold", 12)
+    pdf.drawString(margin, y, "Screenshot")
     y -= 6 * mm
 
-    image_box_height = 55 * mm
-    image_box_width = 85 * mm
+    image_box_height = 60 * mm
+    image_box_width = content_width
+    if y - image_box_height < bottom_margin + 20 * mm:
+        pdf.showPage()
+        y = height - (22 * mm)
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(margin, y, "Screenshot")
+        y -= 6 * mm
+
     pdf.setStrokeColor(colors.HexColor("#CBD5E1"))
     pdf.roundRect(margin, y - image_box_height, image_box_width, image_box_height, 4, stroke=1, fill=0)
     if not _draw_image_fit(
@@ -297,68 +322,64 @@ def download_submission_record_pdf(request, submission_pk):
         pdf.setFillColor(colors.HexColor("#6B7280"))
         pdf.drawString(margin + 4 * mm, y - (image_box_height / 2), "Screenshot preview unavailable")
 
-    info_x = margin + image_box_width + (8 * mm)
-    info_width = width - margin - info_x
-    pdf.setFillColor(colors.black)
-    pdf.setFont("Helvetica-Bold", 11)
-    pdf.drawString(info_x, y - 4 * mm, "Evaluation Visibility")
-    pdf.setFont("Helvetica", 10)
-    visibility_text = (
-        "AI evaluation is visible to this viewer."
-        if show_ai_evaluation
-        else "AI evaluation is hidden by administrator policy."
-    )
-    _draw_wrapped_text(
-        pdf,
-        visibility_text,
-        info_x,
-        y - 11 * mm,
-        info_width,
-        height,
-        bottom_margin,
-        font_name="Helvetica",
-        font_size=10,
-        leading=12,
-    )
+    y = y - image_box_height - (6 * mm)
 
-    y = y - image_box_height - (8 * mm)
-
-    if show_ai_evaluation:
-        if y < bottom_margin + (36 * mm):
+    if submission.explanation:
+        if y < bottom_margin + (28 * mm):
             pdf.showPage()
             y = height - (22 * mm)
+        pdf.setFillColor(colors.black)
         pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(margin, y, "AI Evaluation")
+        pdf.drawString(margin, y, "Explanation")
         y -= 6 * mm
-        ai_lines = [
-            f"Screenshot Score: {submission.ai_score}",
-            f"Explanation Score: {submission.explanation_score}",
-            f"Link Score: {submission.link_score}",
-            f"Admin Review Score: {submission.admin_review_score}",
-            f"AI Feedback: {submission.ai_feedback or '-'}",
-            f"AI Mistakes: {submission.ai_mistakes or '-'}",
-        ]
-        for line in ai_lines:
-            y = _draw_wrapped_text(
-                pdf,
-                line,
-                margin,
-                y,
-                content_width,
-                height,
-                bottom_margin,
-                font_name="Helvetica",
-                font_size=10,
-                leading=12,
-            )
-            y -= 1.2 * mm
+        y = _draw_wrapped_text(
+            pdf,
+            submission.explanation,
+            margin,
+            y,
+            content_width,
+            height,
+            bottom_margin,
+            font_name="Helvetica",
+            font_size=10,
+            leading=12,
+        )
+        y -= 4 * mm
 
+    if y < bottom_margin + (22 * mm):
+        pdf.showPage()
+        y = height - (22 * mm)
+
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica-Bold", 12)
+    pdf.drawString(margin, y, "Result")
+    y -= 6 * mm
+
+    result_lines = [
+        f"Final Score: {submission.final_score}/100",
+        f"Status: {'Passed' if submission.passed else 'Failed'}",
+    ]
+    for line in result_lines:
+        y = _draw_wrapped_text(
+            pdf,
+            line,
+            margin,
+            y,
+            content_width,
+            height,
+            bottom_margin,
+            font_name="Helvetica",
+            font_size=10,
+            leading=12,
+        )
+
+    y -= 2 * mm
     pdf.setFillColor(colors.HexColor("#64748B"))
     pdf.setFont("Helvetica-Oblique", 9)
     pdf.drawString(
         margin,
-        bottom_margin,
-        "System generated record. This PDF is generated on request and is not stored as a separate file.",
+        max(bottom_margin, y - 2 * mm),
+        "Generated record. This PDF is generated on request and is not stored as a separate file.",
     )
 
     pdf.showPage()
