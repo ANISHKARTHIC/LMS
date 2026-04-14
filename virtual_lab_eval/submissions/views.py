@@ -200,51 +200,22 @@ def download_submission_record_pdf(request, submission_pk):
 
     pdf = canvas.Canvas(response, pagesize=A4)
     width, height = A4
-    margin = 16 * mm
-    content_width = width - (2 * margin)
+    outer_margin = 14 * mm
+    outer_x = outer_margin
+    outer_y = outer_margin
+    outer_w = width - (2 * outer_margin)
+    outer_h = height - (2 * outer_margin)
 
-    footer_line_y = 18 * mm
-    footer_text_y = 12 * mm
-    min_content_y = 24 * mm
+    content_x = outer_x + (8 * mm)
+    content_w = outer_w - (16 * mm)
 
-    def draw_page_chrome() -> float:
-        pdf.setStrokeColor(colors.HexColor("#CBD5E1"))
-        pdf.setLineWidth(1)
-        pdf.roundRect(margin - 4, min_content_y - 4, width - (2 * margin) + 8, height - (min_content_y + 4), 8, stroke=1, fill=0)
+    footer_text_y = outer_y + (4.2 * mm)
+    footer_line_y = outer_y + (10 * mm)
+    min_content_y = outer_y + (13 * mm)
 
-        logo_y = height - (30 * mm)
-        _draw_image_fit(pdf, preference.left_logo, margin, logo_y, 38 * mm, 16 * mm)
-        _draw_image_fit(pdf, preference.right_logo, width - margin - (38 * mm), logo_y, 38 * mm, 16 * mm)
+    page_no = 0
 
-        pdf.setFillColor(colors.HexColor("#0B3D5E"))
-        pdf.setFont("Helvetica-Bold", 18)
-        pdf.drawCentredString(width / 2, height - (28 * mm), "VIRTUAL LAB RECORD")
-
-        pdf.setStrokeColor(colors.HexColor("#E5E7EB"))
-        pdf.line(margin, height - (33 * mm), width - margin, height - (33 * mm))
-
-        pdf.setStrokeColor(colors.HexColor("#CBD5E1"))
-        pdf.line(margin, footer_line_y, width - margin, footer_line_y)
-        pdf.setFillColor(colors.HexColor("#1F2937"))
-        pdf.setFont("Helvetica-Bold", 9)
-        pdf.drawString(margin, footer_text_y, f"Name: {submission.student_name}")
-        pdf.drawRightString(width - margin, footer_text_y, f"Roll No: {submission.roll_number}")
-
-        return height - (42 * mm)
-
-    y = draw_page_chrome()
-
-    def new_page() -> None:
-        nonlocal y
-        pdf.showPage()
-        y = draw_page_chrome()
-
-    def ensure_space(required_space: float) -> None:
-        nonlocal y
-        if y - required_space < min_content_y:
-            new_page()
-
-    def wrap_lines(text: str, font_name: str = "Helvetica", font_size: int = 10) -> list[str]:
+    def wrap_lines(text: str, max_width: float, font_name: str = "Times-Roman", font_size: int = 11) -> list[str]:
         paragraphs = str(text or "-").splitlines() or ["-"]
         lines: list[str] = []
         for paragraph in paragraphs:
@@ -255,7 +226,7 @@ def download_submission_record_pdf(request, submission_pk):
             current = words[0]
             for word in words[1:]:
                 candidate = f"{current} {word}"
-                if pdfmetrics.stringWidth(candidate, font_name, font_size) <= content_width:
+                if pdfmetrics.stringWidth(candidate, font_name, font_size) <= max_width:
                     current = candidate
                 else:
                     lines.append(current)
@@ -263,63 +234,163 @@ def download_submission_record_pdf(request, submission_pk):
             lines.append(current)
         return lines
 
+    def draw_center_wrapped(
+        text: str,
+        center_x: float,
+        top_y: float,
+        max_width: float,
+        font_name: str = "Times-Bold",
+        font_size: int = 12,
+        leading: float = 5.2 * mm,
+    ) -> None:
+        lines = wrap_lines(text, max_width, font_name=font_name, font_size=font_size)
+        pdf.setFont(font_name, font_size)
+        y_pos = top_y
+        for line in lines:
+            pdf.drawCentredString(center_x, y_pos, line)
+            y_pos -= leading
+
+    def draw_page_frame() -> float:
+        nonlocal page_no
+        page_no += 1
+
+        pdf.setStrokeColor(colors.HexColor("#4B5563"))
+        pdf.setLineWidth(1.3)
+        pdf.rect(outer_x, outer_y, outer_w, outer_h, stroke=1, fill=0)
+
+        logo_y = outer_y + outer_h - (22 * mm)
+        _draw_image_fit(pdf, preference.left_logo, outer_x + (6 * mm), logo_y, 38 * mm, 14 * mm)
+        _draw_image_fit(pdf, preference.right_logo, outer_x + outer_w - (44 * mm), logo_y, 38 * mm, 14 * mm)
+
+        pdf.setFillColor(colors.HexColor("#1F2937"))
+        pdf.setFont("Times-Roman", 10)
+        pdf.drawRightString(outer_x + outer_w - (6 * mm), outer_y + outer_h - (4.5 * mm), f"Page No: {page_no}")
+
+        meta_top = outer_y + outer_h - (27 * mm)
+        meta_h = 20 * mm
+        left_x = outer_x + (8 * mm)
+        left_w = 38 * mm
+        gap = 5 * mm
+        right_x = left_x + left_w + gap
+        right_w = outer_x + outer_w - (8 * mm) - right_x
+
+        pdf.setStrokeColor(colors.HexColor("#4B5563"))
+        pdf.setLineWidth(1)
+        pdf.rect(left_x, meta_top - meta_h, left_w, meta_h, stroke=1, fill=0)
+        pdf.line(left_x, meta_top - (meta_h / 2), left_x + left_w, meta_top - (meta_h / 2))
+        split_x = left_x + (left_w * 0.42)
+        pdf.line(split_x, meta_top, split_x, meta_top - meta_h)
+
+        pdf.setFont("Times-Bold", 10)
+        pdf.setFillColor(colors.HexColor("#111827"))
+        pdf.drawString(left_x + (2 * mm), meta_top - (6 * mm), "Ex. No")
+        pdf.drawString(left_x + (2 * mm), meta_top - (16 * mm), "Date")
+
+        pdf.setFont("Times-Bold", 11)
+        pdf.drawString(split_x + (2 * mm), meta_top - (6 * mm), f"{submission.experiment_id:02d}")
+        pdf.setFont("Times-Roman", 10)
+        pdf.drawString(split_x + (2 * mm), meta_top - (16 * mm), submission.submitted_at.strftime("%d-%m-%Y"))
+
+        pdf.rect(right_x, meta_top - meta_h, right_w, meta_h, stroke=1, fill=0)
+        pdf.setFillColor(colors.HexColor("#111827"))
+        draw_center_wrapped(
+            submission.experiment.title.upper(),
+            right_x + (right_w / 2),
+            meta_top - (7 * mm),
+            right_w - (4 * mm),
+            font_name="Times-Bold",
+            font_size=12,
+            leading=5 * mm,
+        )
+
+        pdf.setStrokeColor(colors.HexColor("#9CA3AF"))
+        pdf.line(outer_x + (6 * mm), footer_line_y, outer_x + outer_w - (6 * mm), footer_line_y)
+        pdf.setFillColor(colors.HexColor("#1F2937"))
+        pdf.setFont("Times-Bold", 10)
+        pdf.drawString(outer_x + (8 * mm), footer_text_y, f"Name: {submission.student_name}")
+        pdf.drawRightString(outer_x + outer_w - (8 * mm), footer_text_y, f"Roll No: {submission.roll_number}")
+
+        return meta_top - meta_h - (7 * mm)
+
+    y = draw_page_frame()
+
+    def new_page() -> None:
+        nonlocal y
+        pdf.showPage()
+        y = draw_page_frame()
+
+    def ensure_space(required_height: float) -> None:
+        nonlocal y
+        if y - required_height < min_content_y:
+            new_page()
+
     def draw_section(title: str, text: str) -> None:
         nonlocal y
-        ensure_space(16 * mm)
+        ensure_space(14 * mm)
         pdf.setFillColor(colors.HexColor("#111827"))
-        pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(margin, y, title)
+        pdf.setFont("Times-Bold", 12)
+        pdf.drawString(content_x, y, f"{title}:")
         y -= 5 * mm
-        pdf.setStrokeColor(colors.HexColor("#E5E7EB"))
-        pdf.line(margin, y, width - margin, y)
-        y -= 4 * mm
+        pdf.setStrokeColor(colors.HexColor("#D1D5DB"))
+        pdf.line(content_x, y, content_x + content_w, y)
+        y -= 3.5 * mm
 
-        lines = wrap_lines(text)
-        pdf.setFont("Helvetica", 10)
+        lines = wrap_lines(text, content_w, font_name="Times-Roman", font_size=11)
+        pdf.setFont("Times-Roman", 11)
         pdf.setFillColor(colors.black)
         for line in lines:
-            ensure_space(6 * mm)
-            pdf.drawString(margin, y, line)
-            y -= 4.4 * mm
-        y -= 2 * mm
+            ensure_space(5.5 * mm)
+            pdf.drawString(content_x, y, line)
+            y -= 4.8 * mm
+        y -= 2.5 * mm
 
-    draw_section("Experiment", submission.experiment.title)
-    draw_section("Aim", submission.experiment.aim)
-    draw_section("Procedure", submission.experiment.procedure)
+    draw_section("AIM", submission.experiment.aim)
+    draw_section("PROCEDURE", submission.experiment.procedure)
 
-    ensure_space(74 * mm)
+    ensure_space(78 * mm)
     pdf.setFillColor(colors.HexColor("#111827"))
-    pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(margin, y, "Screenshot")
+    pdf.setFont("Times-Bold", 12)
+    pdf.drawString(content_x, y, "SCREENSHOT:")
     y -= 5 * mm
-    pdf.setStrokeColor(colors.HexColor("#E5E7EB"))
-    pdf.line(margin, y, width - margin, y)
-    y -= 4 * mm
+    pdf.setStrokeColor(colors.HexColor("#D1D5DB"))
+    pdf.line(content_x, y, content_x + content_w, y)
+    y -= 3.5 * mm
 
-    screenshot_height = 62 * mm
-    pdf.setStrokeColor(colors.HexColor("#CBD5E1"))
-    pdf.roundRect(margin, y - screenshot_height, content_width, screenshot_height, 4, stroke=1, fill=0)
+    screenshot_h = 60 * mm
+    if y - screenshot_h < min_content_y:
+        new_page()
+        pdf.setFillColor(colors.HexColor("#111827"))
+        pdf.setFont("Times-Bold", 12)
+        pdf.drawString(content_x, y, "SCREENSHOT:")
+        y -= 5 * mm
+        pdf.setStrokeColor(colors.HexColor("#D1D5DB"))
+        pdf.line(content_x, y, content_x + content_w, y)
+        y -= 3.5 * mm
+
+    pdf.setStrokeColor(colors.HexColor("#9CA3AF"))
+    pdf.roundRect(content_x, y - screenshot_h, content_w, screenshot_h, 4, stroke=1, fill=0)
     if not _draw_image_fit(
         pdf,
         submission.screenshot,
-        margin + 2 * mm,
-        y - screenshot_height + 2 * mm,
-        content_width - 4 * mm,
-        screenshot_height - 4 * mm,
+        content_x + (2 * mm),
+        y - screenshot_h + (2 * mm),
+        content_w - (4 * mm),
+        screenshot_h - (4 * mm),
     ):
-        pdf.setFont("Helvetica", 10)
+        pdf.setFont("Times-Roman", 11)
         pdf.setFillColor(colors.HexColor("#6B7280"))
-        pdf.drawString(margin + 4 * mm, y - (screenshot_height / 2), "Screenshot preview unavailable")
-    y = y - screenshot_height - (5 * mm)
+        pdf.drawString(content_x + (4 * mm), y - (screenshot_h / 2), "Screenshot preview unavailable")
+    y = y - screenshot_h - (5 * mm)
 
     if submission.explanation:
-        draw_section("Explanation", submission.explanation)
+        draw_section("EXPLANATION", submission.explanation)
 
     result_text = (
         f"Expected Result: {submission.experiment.expected_result}\n"
-        f"Outcome: {'Passed' if submission.passed else 'Failed'}"
+        f"Final Score: {submission.final_score}/100\n"
+        f"Status: {'Passed' if submission.passed else 'Failed'}"
     )
-    draw_section("Result", result_text)
+    draw_section("RESULT", result_text)
 
     pdf.save()
 
