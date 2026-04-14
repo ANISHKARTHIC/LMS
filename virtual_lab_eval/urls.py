@@ -3,7 +3,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from virtual_lab_eval.views import ping
+
 urlpatterns = [
+    path("ping/", ping, name="ping"),
     path("admin/", admin.site.urls),
     path("", include("virtual_lab_eval.users.urls")),
     path("", include("virtual_lab_eval.experiments.urls")),
