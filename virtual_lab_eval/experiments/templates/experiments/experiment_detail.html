@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12 col-lg-8">
+        <div class="panel">
+            <h1 class="mb-3">{{ experiment.title }}</h1>
+            <h2 class="h6 text-uppercase text-muted">Aim</h2>
+            <p>{{ experiment.aim|linebreaksbr }}</p>
+
+            <h2 class="h6 text-uppercase text-muted mt-4">Procedure</h2>
+            <p>{{ experiment.procedure|linebreaksbr }}</p>
+
+            <h2 class="h6 text-uppercase text-muted mt-4">Expected Result</h2>
+            <p class="mb-0">{{ experiment.expected_result|linebreaksbr }}</p>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+        <div class="panel sticky-top" style="top: 1.2rem;">
+            <div class="metric mb-3">
+                <div class="label">Pass Threshold</div>
+                <div class="value">{{ experiment.pass_marks }}%</div>
+            </div>
+            <a href="{% url 'submissions:submit_experiment' experiment.pk %}" class="btn btn-accent w-100">Submit Experiment</a>
+            <a href="{% url 'experiments:experiment_list' %}" class="btn btn-outline-secondary w-100 mt-2">Back to Experiments</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

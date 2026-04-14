@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-9 col-xl-8">
+        <section class="panel mb-4">
+            <h1 class="h4 mb-1">Submit Experiment</h1>
+            <p class="text-muted mb-0">{{ experiment.title }}</p>
+        </section>
+
+        <section class="panel">
+            <form method="post" enctype="multipart/form-data" id="submission-form" novalidate>
+                {% csrf_token %}
+
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="{{ form.student_name.id_for_label }}">Name</label>
+                        {{ form.student_name }}
+                        {% if form.student_name.errors %}<div class="text-danger small mt-1">{{ form.student_name.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="{{ form.roll_number.id_for_label }}">Roll Number</label>
+                        {{ form.roll_number }}
+                        {% if form.roll_number.errors %}<div class="text-danger small mt-1">{{ form.roll_number.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.tinkercad_link.id_for_label }}">Tinkercad Link</label>
+                        {{ form.tinkercad_link }}
+                        {% if form.tinkercad_link.errors %}<div class="text-danger small mt-1">{{ form.tinkercad_link.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.screenshot.id_for_label }}">Screenshot</label>
+                        {{ form.screenshot }}
+                        <div class="form-text">Accepted: PNG, JPG/JPEG, WEBP</div>
+                        {% if form.screenshot.errors %}<div class="text-danger small mt-1">{{ form.screenshot.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.explanation.id_for_label }}">Explanation (Optional)</label>
+                        {{ form.explanation }}
+                        {% if form.explanation.errors %}<div class="text-danger small mt-1">{{ form.explanation.errors|striptags }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex flex-column flex-md-row gap-2 mt-4">
+                    <button type="submit" class="btn btn-accent" id="submit-btn">
+                        <span class="spinner-border spinner-border-sm d-none" id="submit-spinner" role="status" aria-hidden="true"></span>
+                        <span id="submit-label">Submit for AI Evaluation</span>
+                    </button>
+                    <a href="{% url 'experiments:experiment_detail' experiment.pk %}" class="btn btn-outline-secondary">Back to Experiment</a>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const form = document.getElementById("submission-form");
+  const submitBtn = document.getElementById("submit-btn");
+  const spinner = document.getElementById("submit-spinner");
+  const label = document.getElementById("submit-label");
+
+  if (form) {
+    form.addEventListener("submit", function () {
+      submitBtn.disabled = true;
+      spinner.classList.remove("d-none");
+      label.textContent = "Evaluating...";
+    });
+  }
+</script>
+{% endblock %}

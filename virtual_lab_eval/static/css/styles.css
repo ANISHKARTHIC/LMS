@@ -1,0 +1,153 @@
+:root {
+  --bg-main: #f2f7f5;
+  --ink: #13231d;
+  --muted: #4a5f57;
+  --card: #ffffff;
+  --accent: #0f8b8d;
+  --accent-2: #f4a261;
+  --line: #d8e2dc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Manrope", sans-serif;
+  color: var(--ink);
+  background: linear-gradient(150deg, #f9fffd 0%, #eef7f3 45%, #eef3ff 100%);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+.navbar-brand {
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.bg-orb {
+  position: fixed;
+  border-radius: 999px;
+  filter: blur(50px);
+  opacity: 0.35;
+  z-index: -1;
+  transform: translate3d(0, 0, 0);
+}
+
+.orb-1 {
+  width: 280px;
+  height: 280px;
+  right: -80px;
+  top: -70px;
+  background: #8bd3c7;
+}
+
+.orb-2 {
+  width: 320px;
+  height: 320px;
+  left: -110px;
+  bottom: -80px;
+  background: #ffd6a5;
+}
+
+.app-navbar {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(19, 35, 29, 0.08);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.nav-link {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.nav-link:hover {
+  color: var(--accent);
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 1.2rem;
+  box-shadow: 0 8px 20px rgba(19, 35, 29, 0.06);
+  animation: reveal 0.35s ease;
+}
+
+.panel + .panel {
+  margin-top: 1rem;
+}
+
+.card-soft {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 8px 20px rgba(19, 35, 29, 0.06);
+}
+
+.badge-soft {
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-weight: 700;
+  background: #edf8f8;
+  color: #086f70;
+}
+
+.btn-accent {
+  background: linear-gradient(90deg, var(--accent) 0%, #0b6e70 100%);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+}
+
+.btn-accent:hover {
+  color: #fff;
+  background: linear-gradient(90deg, #0d7b7d 0%, #0a6162 100%);
+}
+
+.metric {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  padding: 0.85rem;
+  background: #fbfffe;
+}
+
+.metric .label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metric .value {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: 1rem;
+  }
+}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
+        <div>
+            <h1 class="mb-1">Admin Dashboard</h1>
+            <p class="text-muted mb-0">Manage experiments, review submissions, and monitor pass rate from one place.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-accent" href="/admin/experiments/experiment/">Manage Experiments</a>
+            <a class="btn btn-outline-secondary" href="/admin/submissions/submission/">Review Submissions</a>
+            <a class="btn btn-outline-secondary" href="/admin/">Django Admin</a>
+        </div>
+    </div>
+</section>
+
+<section class="row g-3 mb-4">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="metric">
+            <div class="label">Experiments</div>
+            <div class="value">{{ total_experiments }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="metric">
+            <div class="label">Submissions</div>
+            <div class="value">{{ total_submissions }}</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="metric">
+            <div class="label">Pass Rate</div>
+            <div class="value">{{ pass_rate }}%</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="metric">
+            <div class="label">Pending Review</div>
+            <div class="value">{{ pending_reviews }}</div>
+        </div>
+    </div>
+</section>
+
+<section class="row g-4">
+    <div class="col-12 col-xl-7">
+        <div class="panel">
+            <h2 class="h5 mb-3">Recent Submissions</h2>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Experiment</th>
+                            <th>Final Score</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in recent_submissions %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ item.student_name }}</div>
+                                    <small class="text-muted">{{ item.roll_number }}</small>
+                                </td>
+                                <td>{{ item.experiment.title }}</td>
+                                <td>{{ item.final_score }}</td>
+                                <td>
+                                    {% if item.passed %}
+                                        <span class="text-success fw-semibold">Passed</span>
+                                    {% else %}
+                                        <span class="text-danger fw-semibold">Failed</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="/admin/submissions/submission/{{ item.id }}/change/" class="btn btn-sm btn-outline-secondary">Open</a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-muted">No submissions yet.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-5">
+        <div class="panel mb-3">
+            <h2 class="h5 mb-3">Outcome Overview</h2>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="badge text-bg-success">Passed: {{ passed_submissions }}</span>
+                <span class="badge text-bg-danger">Failed: {{ failed_submissions }}</span>
+                <span class="badge text-bg-warning">Pending: {{ pending_reviews }}</span>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2 class="h5 mb-3">Top Experiments by Submissions</h2>
+            <ul class="list-group list-group-flush">
+                {% for exp in top_experiments %}
+                    <li class="list-group-item d-flex justify-content-between px-0">
+                        <span>{{ exp.title }}</span>
+                        <strong>{{ exp.submission_count }}</strong>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item px-0 text-muted">No data available.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</section>
+{% endblock %}

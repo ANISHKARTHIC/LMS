@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel mb-4">
+    <h1 class="h4 mb-1">Submission History</h1>
+    <p class="text-muted mb-0">Search by roll number (required) and optional name.</p>
+</section>
+
+<section class="panel mb-4">
+    <form method="get" class="row g-3">
+        <div class="col-12 col-md-5">
+            <label class="form-label">Roll Number</label>
+            <input type="text" name="roll" value="{{ roll_number }}" class="form-control" placeholder="e.g. CSE-2024-001" required>
+        </div>
+        <div class="col-12 col-md-5">
+            <label class="form-label">Name (optional)</label>
+            <input type="text" name="name" value="{{ student_name }}" class="form-control" placeholder="e.g. Anish Kumar">
+        </div>
+        <div class="col-12 col-md-2 d-grid">
+            <label class="form-label d-none d-md-block">&nbsp;</label>
+            <button class="btn btn-accent" type="submit">Search</button>
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <h2 class="h6 text-uppercase text-muted mb-3">Results</h2>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Experiment</th>
+                    <th>Final</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in submissions %}
+                    <tr>
+                        <td>{{ item.submitted_at|date:"d M Y H:i" }}</td>
+                        <td>{{ item.experiment.title }}</td>
+                        <td>{{ item.final_score }}</td>
+                        <td>
+                            {% if item.passed %}
+                                <span class="text-success fw-semibold">Passed</span>
+                            {% else %}
+                                <span class="text-danger fw-semibold">Failed</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-secondary" href="{% url 'submissions:submission_result' item.pk %}">View</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-muted">No submissions found for the entered query.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
