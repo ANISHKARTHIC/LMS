@@ -148,11 +148,10 @@ Steps:
   - `DEFAULT_ADMIN_PASSWORD`
 5. Deploy.
 
-The pre-deploy command runs automatically:
+For free-tier compatibility, deployment tasks are split as:
 
-```bash
-python manage.py migrate && python manage.py collectstatic --noinput && python manage.py create_default_admin
-```
+- Build phase: `pip install -r requirements.txt && python manage.py collectstatic --noinput`
+- Start phase: `python manage.py migrate && python manage.py create_default_admin && gunicorn ...`
 
 After deploy:
 
