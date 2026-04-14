@@ -15,6 +15,7 @@ Production-ready Django web application for evaluating virtual lab experiment su
 - Pass/fail automation based on experiment pass marks
 - Admin override score and approve/reject workflow
 - PDF certificate download for passed submissions
+- Structured submission record PDF download (generated on demand, not stored)
 - Submission history page
 - Staff analytics dashboard (pass rate + experiment breakdown)
 
@@ -84,6 +85,12 @@ Default local credentials:
 
 - Username: `admin`
 - Password: `admin123`
+
+Admin branding and AI visibility settings:
+
+- Open `/admin/users/systempreference/`
+- Upload left and right logos (used in submission record PDF)
+- Toggle `show_ai_evaluation_to_students` to control whether students can see AI score/feedback/mistakes
 
 ## Free API Configuration (Default)
 

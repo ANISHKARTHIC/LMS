@@ -39,16 +39,24 @@
         </section>
 
         <section class="panel mb-3">
-            <h2 class="h6 text-uppercase text-muted mb-3">Score Components</h2>
-            <div class="row g-2">
-                <div class="col-12 col-md-6"><strong>Screenshot (50%):</strong> {{ submission.ai_score }}</div>
-                <div class="col-12 col-md-6"><strong>Link Validity (20%):</strong> {{ submission.link_score }}</div>
-                <div class="col-12 col-md-6"><strong>Explanation (10%):</strong> {{ submission.explanation_score }}</div>
-                <div class="col-12 col-md-6"><strong>Admin Review (20%):</strong> {{ submission.admin_review_score }}</div>
-            </div>
-            <hr>
-            <p class="mb-2"><strong>AI Feedback:</strong> {{ submission.ai_feedback|default:"No feedback available." }}</p>
-            <p class="mb-0"><strong>Mistakes:</strong> {{ submission.ai_mistakes|default:"No mistakes reported." }}</p>
+            {% if show_ai_evaluation %}
+                <h2 class="h6 text-uppercase text-muted mb-3">Score Components</h2>
+                <div class="row g-2">
+                    <div class="col-12 col-md-6"><strong>Screenshot (50%):</strong> {{ submission.ai_score }}</div>
+                    <div class="col-12 col-md-6"><strong>Link Validity (20%):</strong> {{ submission.link_score }}</div>
+                    <div class="col-12 col-md-6"><strong>Explanation (10%):</strong> {{ submission.explanation_score }}</div>
+                    <div class="col-12 col-md-6"><strong>Admin Review (20%):</strong> {{ submission.admin_review_score }}</div>
+                </div>
+                <hr>
+                <p class="mb-2"><strong>AI Feedback:</strong> {{ submission.ai_feedback|default:"No feedback available." }}</p>
+                <p class="mb-0"><strong>Mistakes:</strong> {{ submission.ai_mistakes|default:"No mistakes reported." }}</p>
+            {% else %}
+                <h2 class="h6 text-uppercase text-muted mb-2">Evaluation Visibility</h2>
+                <p class="mb-0 text-muted">
+                    AI evaluation details are currently hidden for students by administrator settings.
+                    Your final score and status remain available.
+                </p>
+            {% endif %}
         </section>
 
         <section class="panel">
@@ -58,6 +66,7 @@
                 {% else %}
                     <button class="btn btn-outline-secondary" disabled>Certificate Unavailable</button>
                 {% endif %}
+                <a href="{% url 'submissions:download_submission_record_pdf' submission.pk %}" class="btn btn-outline-primary">Download Submission Record PDF</a>
                 <a href="{% url 'experiments:experiment_list' %}" class="btn btn-outline-secondary">Back to Experiments</a>
                 <a href="{% url 'submissions:submission_history' %}?roll={{ submission.roll_number|urlencode }}" class="btn btn-outline-secondary">View Submission History</a>
             </div>
