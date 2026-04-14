@@ -61,6 +61,12 @@ def _provider_error_message(exc: Exception) -> str:
     return "AI provider request failed. Please retry later."
 
 
+def _http_status_code(exc: Exception) -> int | None:
+    if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
+        return exc.response.status_code
+    return None
+
+
 def _retry_delay_seconds(exc: Exception, attempt: int) -> float:
     if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
         retry_after = exc.response.headers.get("Retry-After")
@@ -262,8 +268,30 @@ def _evaluate_with_gemini(experiment, screenshot_file, explanation: str) -> dict
             )
             result["ai_mistakes"] = "AI evaluation postponed due to model configuration issue."
         else:
-            result["ai_feedback"] = _provider_error_message(exc)
-            result["ai_mistakes"] = "Could not evaluate screenshot with Gemini."
+            # Do not penalize students when provider/auth/network fails.
+            result["ai_score"] = PROVISIONAL_SCREENSHOT_SCORE
+            if explanation:
+                result["explanation_score"] = _heuristic_explanation_score(explanation)
+
+            status_code = _http_status_code(exc)
+            if status_code in {401, 403}:
+                result["ai_feedback"] = (
+                    "Gemini authentication or quota issue detected. Provisional screenshot score 50/100 applied. "
+                    "Please verify GEMINI_API_KEY/quota and re-evaluate from admin."
+                )
+                result["ai_mistakes"] = "AI evaluation postponed due to API key/quota issue."
+            elif status_code and status_code >= 500:
+                result["ai_feedback"] = (
+                    "Gemini service is temporarily unavailable. Provisional screenshot score 50/100 applied. "
+                    "Re-evaluate from admin later."
+                )
+                result["ai_mistakes"] = "AI evaluation postponed due to provider outage."
+            else:
+                result["ai_feedback"] = (
+                    f"{_provider_error_message(exc)} Provisional screenshot score 50/100 applied. "
+                    "Re-evaluate from admin later."
+                )
+                result["ai_mistakes"] = "AI evaluation postponed due to temporary provider issue."
 
     return result
 
@@ -330,9 +358,22 @@ def _evaluate_with_openai(experiment, screenshot_file, explanation: str) -> dict
                 "OpenAI rate limit reached. Screenshot got provisional score 50/100. "
                 "Use admin re-evaluation later for final AI score."
             )
+            result["ai_mistakes"] = "AI evaluation postponed due to temporary rate limit."
         else:
-            result["ai_feedback"] = _provider_error_message(exc)
-        result["ai_mistakes"] = "Could not evaluate screenshot with AI."
+            result["ai_score"] = PROVISIONAL_SCREENSHOT_SCORE
+            status_code = _http_status_code(exc)
+            if status_code in {401, 403}:
+                result["ai_feedback"] = (
+                    "OpenAI authentication or quota issue detected. Provisional screenshot score 50/100 applied. "
+                    "Please verify OPENAI_API_KEY/quota and re-evaluate from admin."
+                )
+                result["ai_mistakes"] = "AI evaluation postponed due to API key/quota issue."
+            else:
+                result["ai_feedback"] = (
+                    f"{_provider_error_message(exc)} Provisional screenshot score 50/100 applied. "
+                    "Re-evaluate from admin later."
+                )
+                result["ai_mistakes"] = "AI evaluation postponed due to temporary provider issue."
 
     explanation = (explanation or "").strip()
     if explanation:
