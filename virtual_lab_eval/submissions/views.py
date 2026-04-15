@@ -3,7 +3,6 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -13,7 +12,6 @@ from reportlab.pdfgen import canvas
 
 from .forms import SubmissionForm
 from .models import Submission
-from .services import evaluate_submission_with_ai
 from virtual_lab_eval.experiments.models import Experiment
 from virtual_lab_eval.users.models import StudentProfile, get_system_preference
 
@@ -89,23 +87,10 @@ def submit_experiment(request, experiment_pk):
                 profile.full_name = submission.student_name
                 profile.save(update_fields=["full_name", "updated_at"])
             submission.student = profile
-
-            ai_result = evaluate_submission_with_ai(
-                experiment,
-                form.cleaned_data["screenshot"],
-                form.cleaned_data.get("explanation", ""),
-            )
-
-            submission.ai_score = ai_result["ai_score"]
-            submission.explanation_score = ai_result["explanation_score"]
-            submission.link_score = ai_result["link_score"]
-            submission.ai_feedback = ai_result["ai_feedback"]
-            submission.ai_mistakes = ai_result["ai_mistakes"]
-            submission.evaluated_at = timezone.now()
             submission.save()
 
-            messages.success(request, "Submission evaluated successfully.")
-            return redirect("submissions:submission_result", submission_pk=submission.pk)
+            # Generate the record PDF immediately after submission.
+            return download_submission_record_pdf(request, submission.pk)
         messages.error(request, "Please fix the errors below and submit again.")
     else:
         form = SubmissionForm()
@@ -114,16 +99,7 @@ def submit_experiment(request, experiment_pk):
 
 def submission_result(request, submission_pk):
     submission = get_object_or_404(Submission, pk=submission_pk)
-    preference = get_system_preference()
-    show_ai_evaluation = preference.show_ai_evaluation_to_students or request.user.is_staff
-    return render(
-        request,
-        "submissions/submission_result.html",
-        {
-            "submission": submission,
-            "show_ai_evaluation": show_ai_evaluation,
-        },
-    )
+    return render(request, "submissions/submission_result.html", {"submission": submission})
 
 
 def submission_history(request):
@@ -292,16 +268,17 @@ def download_submission_record_pdf(request, submission_pk):
         pdf.drawString(split_x + (2 * mm), meta_top - (16 * mm), submission.submitted_at.strftime("%d-%m-%Y"))
 
         pdf.rect(right_x, meta_top - meta_h, right_w, meta_h, stroke=1, fill=0)
-        pdf.setFillColor(colors.HexColor("#111827"))
-        draw_center_wrapped(
-            submission.experiment.title.upper(),
-            right_x + (right_w / 2),
-            meta_top - (7 * mm),
-            right_w - (4 * mm),
-            font_name="Times-Bold",
-            font_size=12,
-            leading=5 * mm,
-        )
+        if page_no == 1:
+            pdf.setFillColor(colors.HexColor("#111827"))
+            draw_center_wrapped(
+                submission.experiment.title.upper(),
+                right_x + (right_w / 2),
+                meta_top - (7 * mm),
+                right_w - (4 * mm),
+                font_name="Times-Bold",
+                font_size=12,
+                leading=5 * mm,
+            )
 
         pdf.setStrokeColor(colors.HexColor("#9CA3AF"))
         pdf.line(outer_x + (6 * mm), footer_line_y, outer_x + outer_w - (6 * mm), footer_line_y)
@@ -385,12 +362,7 @@ def download_submission_record_pdf(request, submission_pk):
     if submission.explanation:
         draw_section("EXPLANATION", submission.explanation)
 
-    result_text = (
-        f"Expected Result: {submission.experiment.expected_result}\n"
-        f"Final Score: {submission.final_score}/100\n"
-        f"Status: {'Passed' if submission.passed else 'Failed'}"
-    )
-    draw_section("RESULT", result_text)
+    draw_section("EXPECTED RESULT", submission.experiment.expected_result)
 
     pdf.save()
 

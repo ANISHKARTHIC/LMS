@@ -47,7 +47,7 @@
                 <div class="d-flex flex-column flex-md-row gap-2 mt-4">
                     <button type="submit" class="btn btn-accent" id="submit-btn">
                         <span class="spinner-border spinner-border-sm d-none" id="submit-spinner" role="status" aria-hidden="true"></span>
-                        <span id="submit-label">Submit for AI Evaluation</span>
+                        <span id="submit-label">Submit and Generate PDF</span>
                     </button>
                     <a href="{% url 'experiments:experiment_detail' experiment.pk %}" class="btn btn-outline-secondary">Back to Experiment</a>
                 </div>
@@ -68,7 +68,7 @@
     form.addEventListener("submit", function () {
       submitBtn.disabled = true;
       spinner.classList.remove("d-none");
-      label.textContent = "Evaluating...";
+            label.textContent = "Generating PDF...";
     });
   }
 </script>

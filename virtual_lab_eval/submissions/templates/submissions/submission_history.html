@@ -31,8 +31,6 @@
                 <tr>
                     <th>Date</th>
                     <th>Experiment</th>
-                    <th>Final</th>
-                    <th>Status</th>
                     <th></th>
                 </tr>
             </thead>
@@ -41,21 +39,14 @@
                     <tr>
                         <td>{{ item.submitted_at|date:"d M Y H:i" }}</td>
                         <td>{{ item.experiment.title }}</td>
-                        <td>{{ item.final_score }}</td>
-                        <td>
-                            {% if item.passed %}
-                                <span class="text-success fw-semibold">Passed</span>
-                            {% else %}
-                                <span class="text-danger fw-semibold">Failed</span>
-                            {% endif %}
-                        </td>
                         <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" href="{% url 'submissions:download_submission_record_pdf' item.pk %}">PDF</a>
                             <a class="btn btn-sm btn-outline-secondary" href="{% url 'submissions:submission_result' item.pk %}">View</a>
                         </td>
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="5" class="text-muted">No submissions found for the entered query.</td>
+                        <td colspan="3" class="text-muted">No submissions found for the entered query.</td>
                     </tr>
                 {% endfor %}
             </tbody>
